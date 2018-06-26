@@ -15,19 +15,25 @@ def convertUsername(username):
 	return username.replace("@", "%40")
 
 def makeSignature(nonce, data, commandUrl):
-	hashstring = nonce + data;
-	hashed = hashlib.sha256(hashstring.encode('utf-8')).digest().decode("utf-8", "replace")
-	encoded = commandUrl + hashed
-	signature = base64.b64encode(hmac.new(env.get("API_SECRET").encode('utf-8'), encoded.encode('utf-8'), hashlib.sha512).digest())
-	return signature.decode("utf-8")
+	encoded = (nonce + data).encode()
+	message = commandUrl.encode() + hashlib.sha256(encoded).digest()
+
+	signature = hmac.new(
+		env.get("API_SECRET").encode(),
+		message,
+		hashlib.sha512
+	)
+	sigdigest = base64.b64encode(signature.digest())
+
+	return sigdigest.decode()
 
 def getHeaders(nonce, commandUrl):
 	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
-	# signature = makeSignature(nonce, data, commandUrl)
+	signature = makeSignature(nonce, data, commandUrl)
 
-	args = shlex.split('node makeSignature.js ' + env.get("API_SECRET") + ' ' + nonce + ' ' + data + ' ' + commandUrl)
-	result = subprocess.run(args, stdout=subprocess.PIPE)
-	signature = result.stdout.decode('utf-8').replace('\n', '')
+	# args = shlex.split('node makeSignature.js ' + env.get("API_SECRET") + ' ' + nonce + ' ' + data + ' ' + commandUrl)
+	# result = subprocess.run(args, stdout=subprocess.PIPE)
+	# signature = result.stdout.decode('utf-8').replace('\n', '')
 
 	return {
 		'X-API-KEY': env.get("API_KEY"),
@@ -42,7 +48,7 @@ def getFullUrl(commandUrl):
 # /v1/transaction/getBalance
 def getBalance():
 	nonce = getNonce()
-	commandUrl = env.get("API_GETBALANCE")
+	commandUrl = "/v1/transaction/getBalance"
 	
 	headers = getHeaders(nonce, commandUrl)
 	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
@@ -53,7 +59,7 @@ def getBalance():
 # /v1/user
 def getGetList3(body):
 	nonce = getNonce()
-	commandUrl = env.get("API_GETUSER")
+	commandUrl = "/v1/user"
 	
 	headers = getHeaders(nonce, commandUrl)
 	data = (
@@ -71,7 +77,7 @@ def getGetList3(body):
 # /v1/user/phoneVerification
 def phoneVerification(body):
 	nonce = getNonce()
-	commandUrl = env.get("API_PHONEVERIFICATION")
+	commandUrl = "/v1/user/phoneVerification"
 
 	headers = getHeaders(nonce, commandUrl)
 	data = (
@@ -88,7 +94,7 @@ def phoneVerification(body):
 # /v1/transaction/sendMoney
 def sendMoney(body):
 	nonce = getNonce()
-	commandUrl = env.get("API_SENDMONEY")
+	commandUrl = "/v1/transaction/sendMoney"
 
 	headers = getHeaders(nonce, commandUrl)
 	data = (
@@ -106,7 +112,7 @@ def sendMoney(body):
 # /v1/transaction/requestMoney
 def requestMoney(body):
 	nonce = getNonce()
-	commandUrl = env.get("API_REQUESTMONEY")
+	commandUrl = "/v1/transaction/requestMoney"
 
 	headers = getHeaders(nonce, commandUrl)
 	data = (
@@ -123,7 +129,7 @@ def requestMoney(body):
 # /v1/user/getSessionData
 def getSessionData():
 	nonce = getNonce()
-	commandUrl = env.get("API_SESSIONDATA")
+	commandUrl = "/v1/user/getSessionData"
 
 	headers = getHeaders(nonce, commandUrl)
 	data = (
@@ -134,7 +140,9 @@ def getSessionData():
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
-while True:
+getBalance()
+
+while False:
 	# Calling Functions
 
 	# 1. 
@@ -177,4 +185,4 @@ while True:
 	# )
 	# 6.
 	getSessionData()
-	time.sleep(int(env.get("TIME_DELAY")))
+	time.sleep(int(env.get("TIME_DELAY"))) # Delay by seconds

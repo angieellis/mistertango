@@ -203,8 +203,13 @@ function convertUsername(username)
 function makeSignature(nonce, data, command_url)
 {
 	const hashstring = nonce + data;
+	console.log("1 : ", hashstring);
 	const hashed = CryptoJS.SHA256(hashstring).toString(CryptoJS.enc.Latin1);
+	console.log("2 : ", hashed);
  	const encoded = CryptoJS.enc.Latin1.parse(command_url.concat(hashed));
+ 	console.log("4 : ", command_url.concat(hashed));
+ 	console.log("5 : ", encoded);
+ 	console.log("6 : ", CryptoJS.HmacSHA512(encoded, API_SECRET).toString(CryptoJS.enc.Base64));
 
  	return CryptoJS.HmacSHA512(encoded, API_SECRET).toString(CryptoJS.enc.Base64);
 }
