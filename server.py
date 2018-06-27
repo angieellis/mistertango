@@ -29,11 +29,8 @@ def makeSignature(nonce, data, commandUrl):
 
 def getHeaders(nonce, commandUrl):
 	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
+	
 	signature = makeSignature(nonce, data, commandUrl)
-
-	# args = shlex.split('node makeSignature.js ' + env.get("API_SECRET") + ' ' + nonce + ' ' + data + ' ' + commandUrl)
-	# result = subprocess.run(args, stdout=subprocess.PIPE)
-	# signature = result.stdout.decode('utf-8').replace('\n', '')
 
 	return {
 		'X-API-KEY': env.get("API_KEY"),
@@ -54,7 +51,9 @@ def getBalance():
 	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
 
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
-	print(json.loads(r.text))
+	status = json.loads(r.text)["status"]
+	print(r.text)
+	return status
 
 # /v1/user
 def getGetList3(body):
@@ -140,7 +139,9 @@ def getSessionData():
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
-getBalance()
+if getBalance():
+	r = requests.get(env.get("GO_API_URL") + "/api/opis/test")
+	print(json.loads(r.text))
 
 while False:
 	# Calling Functions
