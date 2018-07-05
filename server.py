@@ -1,10 +1,12 @@
-import hashlib, time, hmac, base64, requests, json, datetime, subprocess, shlex
+import hashlib, time, hmac, base64, requests, json, datetime, urllib
 from os import environ as env
 from dotenv import load_dotenv, find_dotenv
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
     load_dotenv(ENV_FILE)
+
+last_updated_time = 0
 
 def getNonce():
 	then = datetime.datetime.now()
@@ -27,9 +29,7 @@ def makeSignature(nonce, data, commandUrl):
 
 	return sigdigest.decode()
 
-def getHeaders(nonce, commandUrl):
-	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
-	
+def getHeaders(nonce, commandUrl, data):
 	signature = makeSignature(nonce, data, commandUrl)
 
 	return {
@@ -47,46 +47,66 @@ def getBalance():
 	nonce = getNonce()
 	commandUrl = "/v1/transaction/getBalance"
 	
-	headers = getHeaders(nonce, commandUrl)
-	data = 'username=' + convertUsername(env.get("API_USER")) + '&nonce=' + nonce
+	data = {
+		"username": env.get("API_USER"),
+		"nonce": nonce
+	}
+	data = urllib.parse.urlencode(data)
 
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	status = json.loads(r.text)["status"]
-	print(r.text)
 	return status
 
-# /v1/user
-def getGetList3(body):
+# /v1/transaction/getList
+def getGetList(body):
 	nonce = getNonce()
-	commandUrl = "/v1/user"
-	
-	headers = getHeaders(nonce, commandUrl)
-	data = (
-		'username=' + convertUsername(env.get("API_USER")) +
-		'&dateFrom=' + body["dateFrom"] +
-		'&dateTill=' + body["dateTill"] +
-		'&currency=' + body["currency"] +
-		'&page=' + body["page"] +
-		'&nonce=' + nonce
-	)
+	commandUrl = "/v1/transaction/getList"
 
+	data = {
+		"username": env.get("API_USER"),
+		'nonce': nonce,
+		"currency": body["currency"],
+		"page": body["page"]
+	}
+	data = urllib.parse.urlencode(data)
+
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
+
+# /v1/transaction/getList3
+def getGetList3(body):
+	nonce = getNonce()
+	commandUrl = "/v1/transaction/getList3"
+	
+	data = {
+		"username": env.get("API_USER"),
+		"nonce": nonce,
+		"currency": body["currency"],
+		"page": body["page"]
+	}
+	data = urllib.parse.urlencode(data)
+
+	headers = getHeaders(nonce, commandUrl, data)
+	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
+	return json.loads(r.text)
 
 # /v1/user/phoneVerification
 def phoneVerification(body):
 	nonce = getNonce()
 	commandUrl = "/v1/user/phoneVerification"
 
-	headers = getHeaders(nonce, commandUrl)
-	data = (
-		'username=' + convertUsername(env.get("API_USER")) +
-		'&phoneNumber=' + body["phoneNumber"] +
-		'&action=' + body["action"] +
-		'&code=' + body["code"] +
-		'&nonce=' + nonce
-	)
+	data = {
+		"username": env.get("API_USER"),
+		"phoneNumber": body["phoneNumber"],
+		"action": body["action"],
+		"code": body["code"],
+		"nonce": nonce
+	}
+	data = urllib.parse.urlencode(data)
 
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
@@ -95,16 +115,17 @@ def sendMoney(body):
 	nonce = getNonce()
 	commandUrl = "/v1/transaction/sendMoney"
 
-	headers = getHeaders(nonce, commandUrl)
-	data = (
-		'username=' + convertUsername(env.get("API_USER")) +
-		'&amount=' + body["amount"] +
-		'&currency=' + body["currency"] +
-		'&recipient=' + body["recipient"] +
-		'&account=' + body["account"] +
-		'&details=' + body["details"]
-	)
+	data = {
+		"username": env.get("API_USER"),
+		"amount": body["amount"],
+		"currency": body["currency"],
+		"recipient": body["recipient"],
+		"account": body["account"],
+		"details": body["details"]
+	}
+	data = urllib.parse.urlencode(data)
 
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
@@ -113,15 +134,16 @@ def requestMoney(body):
 	nonce = getNonce()
 	commandUrl = "/v1/transaction/requestMoney"
 
-	headers = getHeaders(nonce, commandUrl)
-	data = (
-		'username=' + convertUsername(env.get("API_USER")) +
-		'&amount=' + body["amount"] +
-		'&currency=' + body["currency"] +
-		'&from=' + body["from"] +
-		'&details=' + body["details"]
-	)
+	data = {
+		"username": env.get("API_USER"),
+		"amount": body["amount"],
+		"currency": body["currency"],
+		"from": body["from"],
+		"details": body["details"]
+	}
+	data = urllib.parse.urlencode(data)
 
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
@@ -130,60 +152,47 @@ def getSessionData():
 	nonce = getNonce()
 	commandUrl = "/v1/user/getSessionData"
 
-	headers = getHeaders(nonce, commandUrl)
-	data = (
-		'username=' + convertUsername(env.get("API_USER")) +
-		'&nonce=' + nonce
-	)
+	data = {
+		"username": env.get("API_USER"),
+		"nonce": nonce
+	}
+	data = urllib.parse.urlencode(data)
 
+	headers = getHeaders(nonce, commandUrl, data)
 	r = requests.post(getFullUrl(commandUrl), headers = headers, data = data)
 	print(json.loads(r.text))
 
-if getBalance():
-	r = requests.get(env.get("GO_API_URL") + "/api/opis/test")
+def updateGo(IBAN, amount, date):
+	payload = {
+		"IBAN": IBAN,
+		"Amount": amount,
+		"Date": date
+	}
+
+	print("===", payload)
+	r = requests.post(env.get("GO_API_URL") + "/api/admin/user/balance", payload)
 	print(json.loads(r.text))
 
-while False:
-	# Calling Functions
+def getEpochTime(date):
+	utc_time = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+%f")
+	epoch_time = (utc_time - datetime.datetime(1970, 1, 1)).total_seconds()
+	return epoch_time
 
-	# 1. 
-	# getBalance()
-	# 2. 
-	# getGetList3(
-	# 	{
-	# 		'dateFrom': None,
-	# 		'dateTill': None,
-	# 		'currency': None,
-	# 		'page': '1'
-	# 	}
-	# )
-	# 3.
-	# phoneVerification(
-	# 	{
-	# 		'phoneNumber': '+15162748174',
-	# 		'action': 'get_code',
-	# 		'code': 'check_code'
-	# 	}
-	# )
-	# 4.
-	# sendMoney(
-	# 	{
-	# 		'amount': '100',
-	# 		'currency': 'EUR',
-	# 		'recipient': '',
-	# 		'account': '',
-	# 		'details': ''
-	# 	}
-	# )
-	# 5.
-	# requestMoney(
-	# 	{
-	# 		'amount': '100',
-	# 		'currency': 'EUR',
-	# 		'from': '',
-	# 		'details': ''
-	# 	}
-	# )
-	# 6.
-	getSessionData()
+while True:
+	res = getGetList3({
+		'dateFrom': '1530448312288961',
+		'currency': 'EUR',
+		'page': 1
+	})
+
+	try:
+		last_list_time = getEpochTime(res["data"]["list"][0]["date"])
+		if last_updated_time < last_list_time:
+			last_updated_time = last_list_time
+			for paylist in res["data"]["list"]:
+				updateGo(paylist["other_side_account"], paylist["amount"], paylist["date"])
+		print("Update GO service data successfully!")
+	except:
+		print("Something wrong in Mr.Tango api response")
+
 	time.sleep(int(env.get("TIME_DELAY"))) # Delay by seconds
